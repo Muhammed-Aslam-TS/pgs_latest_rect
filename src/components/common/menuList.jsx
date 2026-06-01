@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 
 const MenuList = ({ menuItems, onMenuItemClick }) => {
   return (
-    <div className="absolute right-0 mt-2 w-48 bg-[#1F4068] rounded-md shadow-lg py-1 z-20">
+    <div className="absolute right-0 mt-2 w-48 bg-[#1F4068] rounded shadow-lg py-1 z-20">
       {menuItems.map((item, index) => (
         <button
           key={index}

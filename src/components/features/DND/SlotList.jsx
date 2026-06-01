@@ -5,7 +5,7 @@ const SlotList = ({ slots }) => (
     <input
       type="text"
       placeholder="Search Slot.."
-      className="border border-gray-400 mb-5 text-gray-800 rounded-lg px-2 py-1"
+      className="border border-gray-400 mb-5 text-gray-800 rounded px-2 py-1"
     />
     {slots?.map((slot) => (
       <Slot key={slot._id} slot={slot} />

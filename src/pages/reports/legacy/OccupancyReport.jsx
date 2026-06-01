@@ -84,7 +84,7 @@ const OccupancyReport = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-md">
+    <div className="p-6 bg-white rounded shadow-md">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -100,11 +100,10 @@ const OccupancyReport = () => {
             <button
               key={type}
               onClick={() => setView(type)}
-              className={`px-3 py-1 mx-1 rounded-full text-sm font-medium transition ${
-                view === type
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              className={`px-3 py-1 mx-1 rounded text-sm font-medium transition ${view === type
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </button>

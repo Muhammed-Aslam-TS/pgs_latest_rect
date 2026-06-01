@@ -3,13 +3,13 @@ import PropTypes from "prop-types";
 
 /* ─── Animated segmented bar ───────────────────────────────────── */
 const SplitBar = memo(({ occupied, available }) => (
-  <div className="w-full flex h-1.5 rounded-full overflow-hidden gap-0.5 bg-white/5">
+  <div className="w-full flex h-1.5 rounded overflow-hidden gap-0.5 bg-white/5">
     <div
-      className="h-full rounded-full bg-rose-500 transition-all duration-700 shadow-[0_0_8px_rgba(244,63,94,0.3)]"
+      className="h-full rounded bg-rose-500 transition-all duration-700 shadow-[0_0_8px_rgba(244,63,94,0.3)]"
       style={{ width: `${occupied}%` }}
     />
     <div
-      className="h-full rounded-full bg-emerald-500 transition-all duration-700 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+      className="h-full rounded bg-emerald-500 transition-all duration-700 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
       style={{ width: `${available}%` }}
     />
   </div>
@@ -20,13 +20,13 @@ SplitBar.displayName = "SplitBar";
 const KpiCard = memo(({ icon, label, primary, sub, accentColor, borderColor }) => (
   <div
     className={`
-      relative rounded-3xl p-5 overflow-hidden
+      relative rounded p-3 sm:p-4 overflow-hidden
       bg-[#0b0f1a] border ${borderColor}
       hover:border-white/10 transition-all duration-300 group
     `}
   >
     <div className="flex items-start justify-between mb-4">
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center bg-${accentColor}-500/10 text-${accentColor}-400`}>
+      <div className={`w-10 h-10 rounded flex items-center justify-center bg-${accentColor}-500/10 text-${accentColor}-400`}>
         {icon}
       </div>
       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Live Metric</span>
@@ -35,7 +35,7 @@ const KpiCard = memo(({ icon, label, primary, sub, accentColor, borderColor }) =
     <div className="space-y-1">
       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</p>
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold text-white tracking-tight">{primary}</span>
+        <span className="text-2xl font-bold text-white tracking-tight">{primary}</span>
         {sub && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{sub}</span>}
       </div>
     </div>
@@ -47,17 +47,17 @@ KpiCard.displayName = "KpiCard";
 const OccupancyCard = memo(({ title, dotColor, occupied, available, borderColor }) => (
   <div
     className={`
-      relative rounded-3xl p-5 overflow-hidden
+      relative rounded p-3 sm:p-4 overflow-hidden
       bg-[#0b0f1a] border ${borderColor}
       hover:border-white/10 transition-all duration-300 group
     `}
   >
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-pulse shadow-[0_0_8px_currentColor]`} />
+        <span className={`w-1.5 h-1.5 rounded ${dotColor} animate-pulse shadow-[0_0_8px_currentColor]`} />
         <span className="text-xs font-bold text-white uppercase tracking-widest">{title} Hub</span>
       </div>
-      <div className="px-2 py-0.5 rounded-md bg-white/5 border border-white/5">
+      <div className="px-2 py-0.5 rounded bg-white/5 border border-white/5">
         <span className="text-[9px] font-bold text-slate-500 uppercase">Live Sync</span>
       </div>
     </div>
@@ -65,14 +65,14 @@ const OccupancyCard = memo(({ title, dotColor, occupied, available, borderColor 
     <div className="flex justify-between items-end mb-4">
       <div className="space-y-1">
         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Occupancy</span>
-        <p className="text-2xl font-bold text-rose-400 tracking-tight">{occupied}%</p>
+        <p className="text-xl font-bold text-rose-400 tracking-tight">{occupied}%</p>
       </div>
 
       <div className="w-px h-8 bg-white/5" />
 
       <div className="space-y-1 text-right">
         <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Available</span>
-        <p className="text-2xl font-bold text-emerald-400 tracking-tight">{available}%</p>
+        <p className="text-xl font-bold text-emerald-400 tracking-tight">{available}%</p>
       </div>
     </div>
 
@@ -88,15 +88,15 @@ export const Header = memo(({
   mlcpData,
   basementData,
 }) => (
-  <div className="w-full max-w-[1920px] mx-auto pb-8">
+  <div className="w-full pb-0">
     <div className="flex items-center gap-4 mb-6">
       <div className="flex items-center gap-3">
-        <div className="w-1 h-6 bg-blue-600 rounded-full" />
-        <h2 className="text-sm font-bold text-white uppercase tracking-[0.2em]">Operational Pulse</h2>
+        <div className="w-1 h-6 bg-blue-600 rounded" />
+        <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Operational Pulse</h2>
       </div>
       <div className="flex-1 h-[1px] bg-white/5" />
-      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+      <div className="flex items-center gap-2 px-3 py-1 rounded bg-white/5 border border-white/5">
+        <div className="w-1.5 h-1.5 rounded bg-emerald-500 animate-pulse" />
         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Systems Active</span>
       </div>
     </div>
@@ -105,8 +105,8 @@ export const Header = memo(({
       <KpiCard
         icon={
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="4"/>
-            <path strokeLinecap="round" d="M3 9h18M9 21V9"/>
+            <rect x="3" y="3" width="18" height="18" rx="4" />
+            <path strokeLinecap="round" d="M3 9h18M9 21V9" />
           </svg>
         }
         label="Vessel Count"
@@ -119,8 +119,8 @@ export const Header = memo(({
       <KpiCard
         icon={
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="7" width="20" height="14" rx="4"/>
-            <path strokeLinecap="round" d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            <rect x="2" y="7" width="20" height="14" rx="4" />
+            <path strokeLinecap="round" d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
           </svg>
         }
         label="Total Capacity"
@@ -133,16 +133,16 @@ export const Header = memo(({
       <OccupancyCard
         title="MLCP"
         dotColor="bg-blue-400"
-        occupied={mlcpData.occupied}
-        available={mlcpData.availability}
+        occupied={mlcpData?.occupied || 0}
+        available={mlcpData?.availability || 100}
         borderColor="border-white/5"
       />
 
       <OccupancyCard
         title="Basement"
         dotColor="bg-purple-400"
-        occupied={basementData.occupied}
-        available={basementData.availability}
+        occupied={basementData?.occupied || 0}
+        available={basementData?.availability || 100}
         borderColor="border-white/5"
       />
     </div>

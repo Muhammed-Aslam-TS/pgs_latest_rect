@@ -51,7 +51,7 @@ export default function Devices() {
   return (
     <div className="flex flex-col gap-5">
       <select
-        className="bg-gray-200 w-[30%] rounded-lg px-3 py-2 text-sm text-gray-700"
+        className="bg-gray-200 w-[30%] rounded px-3 py-2 text-sm text-gray-700"
         //   value={selectedParking}
         onChange={(e) => {
           setSelectedParking(e.target.value);
@@ -68,7 +68,7 @@ export default function Devices() {
         ))}
       </select>
       <select
-        className="bg-gray-200 w-[30%] rounded-lg px-3 py-2 text-sm text-gray-700"
+        className="bg-gray-200 w-[30%] rounded px-3 py-2 text-sm text-gray-700"
         // value={selectedFloor}
         onChange={(e) => {
           setSelectedFloor(e.target.value);

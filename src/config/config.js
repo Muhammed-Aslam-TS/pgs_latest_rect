@@ -6,7 +6,7 @@ const config = {
     api: {
       baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
       fallbackURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-      timeout: 5000,
+      timeout: 30000,
       retryAttempts: 3,
     },
     socket: {
@@ -16,7 +16,7 @@ const config = {
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 10000,
-        transports: ["websocket", "polling"],
+        transports: ["websocket"],
       },
     },
     endpoints: {
@@ -27,8 +27,8 @@ const config = {
       displays: "/api/displays",
       createParking: "/routes/admin/createParking",
       auth: {
-        login: "/api/auth/login",
-        register: "/api/auth/register",
+        login: "/api/login",
+        register: "/api/register",
       },
     },
   },

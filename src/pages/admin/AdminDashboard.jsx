@@ -4,16 +4,16 @@ import EntryExitReport from "../reports/legacy/EntryExitReport";
 import DailyOccupancyChart from "../reports/legacy/OccupancyReport";
 
 const StatCard = ({ title, value, color, icon, detail }) => (
-    <motion.div 
+    <motion.div
         initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-        className="relative group p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-all shadow-sm"
+        className="relative group p-6 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-all shadow-sm"
     >
         <div className="flex items-center justify-between mb-4">
-            <div className={`p-3 rounded-2xl bg-${color}-500/10`}>
+            <div className={`p-3 rounded bg-${color}-500/10`}>
                 <Icon icon={icon} className={`text-2xl text-${color}-400`} />
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                <span className={`w-1.5 h-1.5 rounded-full bg-${color}-500 animate-pulse`} />
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 border border-white/10">
+                <span className={`w-1.5 h-1.5 rounded bg-${color}-500 animate-pulse`} />
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live</span>
             </div>
         </div>
@@ -47,16 +47,16 @@ const AdminDashboard = () => {
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-                        <div className="p-2.5 bg-blue-600/10 rounded-2xl border border-blue-500/20">
+                        <div className="p-2.5 bg-blue-600/10 rounded border border-blue-500/20">
                             <Icon icon="solar:widget-linear" className="text-blue-500" />
                         </div>
                         Operational Overview
                     </h1>
                     <p className="text-slate-500 text-sm mt-1 font-medium italic">Command Center Status: All systems synchronized.</p>
                 </div>
-                <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
-                    <button className="px-5 py-2.5 rounded-xl hover:bg-white/5 text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-all">Export Report</button>
-                    <button className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-white/5 p-1 rounded border border-white/5">
+                    <button className="px-5 py-2.5 rounded hover:bg-white/5 text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-all">Export Report</button>
+                    <button className="px-5 py-2.5 rounded bg-blue-600 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center gap-2">
                         <Icon icon="solar:restart-linear" />
                         System Sync
                     </button>
@@ -100,9 +100,9 @@ const AdminDashboard = () => {
                         </div>
                         <div className="space-y-3">
                             {logs.map((log, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group">
+                                <div key={idx} className="flex items-center justify-between p-4 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-all group">
                                     <div className="flex items-center gap-4">
-                                        <div className={`p-2 rounded-xl ${log.status === 'ENTRY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                        <div className={`p-2 rounded ${log.status === 'ENTRY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                                             <Icon icon={log.status === 'ENTRY' ? 'solar:login-3-linear' : 'solar:logout-3-linear'} className="text-lg" />
                                         </div>
                                         <div>
@@ -114,7 +114,7 @@ const AdminDashboard = () => {
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full mt-8 py-4 rounded-2xl border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                        <button className="w-full mt-8 py-4 rounded border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white hover:bg-white/5 transition-all">
                             View Comprehensive Logs
                         </button>
                     </div>
@@ -125,4 +125,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-  

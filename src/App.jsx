@@ -58,6 +58,7 @@ function App() {
                <Route index element={<DashBoard />} />
                <Route path="Displays" element={<Displays />} />
                <Route path="Reports" element={<Reports />} />
+               <Route path="Reports/:tabId" element={<Reports />} />
             </Route>
           </Route>
 

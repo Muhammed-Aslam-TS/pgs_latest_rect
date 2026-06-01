@@ -23,9 +23,8 @@ const SmartDropdown = ({ isOpen, children, className = '' }) => {
   return (
     <div
       ref={ref}
-      className={`absolute top-8 mt-2 w-44 bg-[#1e293b] rounded-lg shadow-xl z-[9999] border border-white/10 backdrop-blur-md overflow-hidden flex flex-col ${
-        openLeft ? 'right-0' : 'left-0'
-      } ${className}`}
+      className={`absolute top-8 mt-2 w-44 bg-[#1e293b] rounded shadow-xl z-[9999] border border-white/10 backdrop-blur-md overflow-hidden flex flex-col ${openLeft ? 'right-0' : 'left-0'
+        } ${className}`}
     >
       {children}
     </div>

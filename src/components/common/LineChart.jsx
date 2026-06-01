@@ -7,9 +7,9 @@ export const ApexChart = ({ data = [] }) => {
   const series = data ? [
     {
       name: 'Occupied Spaces',
-      data: data?.map(point => ({
+      data: data.map(point => ({
         x: point.time,
-        y: point.parkingArray.reduce((sum, park) => sum + park.total_occupied, 0)
+        y: point.occupancy !== undefined ? point.occupancy : (point.parkingArray?.reduce((sum, park) => sum + (park.total_occupied || 0), 0) || 0)
       }))
     }
   ] : [];
@@ -53,12 +53,19 @@ export const ApexChart = ({ data = [] }) => {
       },
     },
     xaxis: {
-      type: "datetime",
+      type: "category",
       axisBorder: {
         show: false
       },
       axisTicks: {
         show: false
+      },
+      labels: {
+        style: {
+          colors: '#94a3b8',
+          fontSize: '10px',
+          fontWeight: 600,
+        }
       }
     },
     yaxis: {

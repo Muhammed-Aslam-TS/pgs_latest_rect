@@ -10,8 +10,8 @@ const IconButton = ({
   tooltip = '',
   ariaLabel = ''
 }) => {
-  const baseStyles = 'rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
-  
+  const baseStyles = 'rounded flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+
   const variants = {
     primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',

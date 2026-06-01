@@ -46,7 +46,7 @@ export const DaylyReport = () => {
       {reportData && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Add your report data display components here */}
-          <div className="bg-[#162447] p-4 rounded-lg">
+          <div className="bg-[#162447] p-4 rounded">
             <h2 className="text-xl text-white mb-2">Summary</h2>
             <div className="text-white">
               <p>Total Entries: {reportData.totalEntries}</p>

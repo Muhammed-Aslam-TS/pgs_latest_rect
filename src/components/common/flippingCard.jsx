@@ -14,12 +14,12 @@ const FlipCard = ({ frontContent, backContent }) => {
         animate={{ rotateY: isFlipped ? 180 : 0 }}
       >
         {/* Front Side */}
-        <div className="absolute w-full h-full flex items-center justify-center bg-[#0A1931] text-white text-lg font-bold rounded-xl shadow-lg backface-hidden">
+        <div className="absolute w-full h-full flex items-center justify-center bg-[#0A1931] text-white text-lg font-bold rounded shadow-lg backface-hidden">
           {frontContent}
         </div>
 
         {/* Back Side */}
-        <div className="absolute w-full h-full flex items-center justify-center bg-[#0A1931] text-white text-lg font-bold rounded-xl shadow-lg transform rotateY-180 backface-hidden">
+        <div className="absolute w-full h-full flex items-center justify-center bg-[#0A1931] text-white text-lg font-bold rounded shadow-lg transform rotateY-180 backface-hidden">
           {backContent}
         </div>
       </motion.div>

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../../context/AuthContext";
+import { TABS as REPORT_TABS } from "../../utils/reportConstants";
 
 const ADMIN_MENU_ITEMS = [
   {
@@ -69,6 +70,11 @@ const DASH_MENU_ITEMS = [
     label: "Analytics",
     to: "Reports",
     icon: "solar:chart-linear",
+    subItems: REPORT_TABS.map(tab => ({
+      label: tab.label,
+      to: `Reports/${tab.id}`,
+      icon: tab.icon
+    }))
   },
 ];
 
@@ -81,12 +87,12 @@ const Sidebar = ({ isOpen, content }) => {
     if (path === "#") return false;
     if (path === "/admin" && location.pathname === "/admin") return true;
     if (path === "/" && location.pathname === "/") return true;
-    
+
     // Check if the current location starts with the path
     const fullPath = content === "admin" ? `/admin/${path}` : `/${path}`;
     return location.pathname.includes(path) && path !== "";
   };
-  
+
   const isSubActive = (subItems) => {
     return subItems?.some(item => isActivePath(item.to));
   };
@@ -109,20 +115,19 @@ const Sidebar = ({ isOpen, content }) => {
           <div>
             <button
               onClick={() => toggleDropdown(index)}
-              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
-                isParentActive
-                  ? "bg-blue-500/5 text-blue-400"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
+              className={`w-full flex items-center justify-between p-3 rounded transition-all duration-200 group ${isParentActive
+                ? "bg-blue-500/5 text-blue-400"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
             >
               <div className="flex items-center gap-3">
-                <Icon 
-                  icon={item.icon} 
-                  className={`text-xl transition-colors ${isParentActive ? "text-blue-400" : "text-slate-500 group-hover:text-blue-400"}`} 
+                <Icon
+                  icon={item.icon}
+                  className={`text-xl transition-colors ${isParentActive ? "text-blue-400" : "text-slate-500 group-hover:text-blue-400"}`}
                 />
-                <span className="text-sm font-semibold">{item.label}</span>
+                <span className="text-xs font-semibold">{item.label}</span>
               </div>
-              
+
               <Icon
                 icon="solar:alt-arrow-down-linear"
                 className={`transition-transform duration-300 text-xs ${isDropdownOpen ? "rotate-180 text-blue-400" : "text-slate-600"}`}
@@ -143,9 +148,9 @@ const Sidebar = ({ isOpen, content }) => {
                         <NavLink
                           to={subItem.to}
                           className={({ isActive }) => `
-                            flex items-center gap-3 py-2 px-3 rounded-lg text-xs font-medium transition-all
-                            ${isActive 
-                              ? "text-blue-400 bg-blue-500/5" 
+                            flex items-center gap-3 py-2 px-3 rounded text-[10px] font-medium transition-all
+                            ${isActive
+                              ? "text-blue-400 bg-blue-500/5"
                               : "text-slate-500 hover:text-white hover:bg-white/5"
                             }
                           `}
@@ -164,23 +169,23 @@ const Sidebar = ({ isOpen, content }) => {
           <NavLink
             to={item.to}
             className={({ isActive }) => `
-              flex items-center justify-between p-3 rounded-xl transition-all duration-200 group
-              ${isActive 
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" 
+              flex items-center justify-between p-3 rounded transition-all duration-200 group
+              ${isActive
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
               }
             `}
           >
             <div className="flex items-center gap-3">
-              <Icon 
-                icon={item.icon} 
-                className={`text-xl transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-blue-300"}`} 
+              <Icon
+                icon={item.icon}
+                className={`text-xl transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-blue-300"}`}
               />
-              <span className="text-sm font-semibold">{item.label}</span>
+              <span className="text-xs font-semibold">{item.label}</span>
             </div>
-            
+
             {isActive && (
-              <motion.div layoutId="activeDot" className="w-1.5 h-1.5 rounded-full bg-white" />
+              <motion.div layoutId="activeDot" className="w-1.5 h-1.5 rounded bg-white" />
             )}
           </NavLink>
         )}
@@ -190,33 +195,32 @@ const Sidebar = ({ isOpen, content }) => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-40 w-72 h-screen pt-16 bg-[#0b0f1a] border-r border-white/5 transition-transform duration-300 ease-in-out ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      } md:translate-x-0`}
+      className={`fixed top-0 left-0 z-40 w-56 h-screen pt-16 bg-[#0b0f1a] border-r border-white/5 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
     >
-        <div className="h-full flex flex-col px-4 py-8 overflow-y-auto scrollbar-none">
-            {/* Header Section Label */}
-            <p className="px-4 mb-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Main Menu</p>
-            
-            <ul className="flex flex-col gap-1">
-                {menuItems.map(renderMenuItem)}
-            </ul>
-            
-            <div className="mt-auto border-t border-white/5 pt-6 pb-2">
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors cursor-pointer group">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white ring-4 ring-blue-600/10">
-                        <span className="font-bold">{user?.name?.[0]?.toUpperCase() || "S"}</span>
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate">{user?.name || "Operator"}</p>
-                        <p className="text-[10px] font-medium text-slate-500 group-hover:text-blue-400 transition-colors uppercase tracking-wider">
-                          {user?.role || "Administrator"}
-                        </p>
-                    </div>
-                    <Icon icon="solar:alt-arrow-right-linear" className="ml-auto text-slate-600 group-hover:text-white transition-all" />
-                </div>
+      <div className="h-full flex flex-col px-4 py-8 overflow-y-auto scrollbar-none">
+        {/* Header Section Label */}
+        <p className="px-4 mb-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Main Menu</p>
+
+        <ul className="flex flex-col gap-1">
+          {menuItems.map(renderMenuItem)}
+        </ul>
+
+        <div className="mt-auto border-t border-white/5 pt-6 pb-2">
+          <div className="flex items-center gap-3 px-4 py-3 rounded hover:bg-white/5 transition-colors cursor-pointer group">
+            <div className="w-10 h-10 rounded bg-blue-600 flex items-center justify-center text-white ring-4 ring-blue-600/10">
+              <span className="font-bold">{user?.name?.[0]?.toUpperCase() || "S"}</span>
             </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white truncate">{user?.name || "Operator"}</p>
+              <p className="text-[10px] font-medium text-slate-500 group-hover:text-blue-400 transition-colors uppercase tracking-wider">
+                {user?.role || "Administrator"}
+              </p>
+            </div>
+            <Icon icon="solar:alt-arrow-right-linear" className="ml-auto text-slate-600 group-hover:text-white transition-all" />
+          </div>
         </div>
+      </div>
     </aside>
   );
 };

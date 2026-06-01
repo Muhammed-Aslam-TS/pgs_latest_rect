@@ -26,16 +26,21 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             // Backend returns a flat object: { _id, name, email, role, token }
-            const data = await apiService.post(endpoints.auth.login, { email, password });
+            const data = await apiService.post(endpoints.auth.login, { username: email, password });
 
-            const { _id, name, email: userEmail, role, token } = data;
+            const responseData = data.data;
 
-            if (token && _id) {
-                const userObj = { _id, name, email: userEmail, role };
+            if (responseData && responseData.token && responseData.id) {
+                const userObj = { 
+                    _id: responseData.id, 
+                    name: responseData.usename, 
+                    email: responseData.usename, 
+                    role: "admin" 
+                };
                 setUser(userObj);
                 localStorage.setItem("user", JSON.stringify(userObj));
-                localStorage.setItem("token", token);
-                return { success: true, role };
+                localStorage.setItem("token", responseData.token);
+                return { success: true, role: "admin" };
             } else {
                 return { success: false, message: "Invalid response from server" };
             }
@@ -52,18 +57,17 @@ export const AuthProvider = ({ children }) => {
     const register = async (userData) => {
         try {
             // Backend returns a flat object: { _id, name, email, role, token }
-            const data = await apiService.post(endpoints.auth.register, userData);
+            const data = await apiService.post(endpoints.auth.register, { username: userData.email, password: userData.password });
 
-            const { _id, name, email, role, token } = data;
-
-            if (token && _id) {
-                const userObj = { _id, name, email, role };
-                setUser(userObj);
-                localStorage.setItem("user", JSON.stringify(userObj));
-                localStorage.setItem("token", token);
-                return { success: true, role };
+            if (data && data.status === 200) {
+                if (data.message === "admin exist") {
+                    return { success: false, message: "Admin already exists. Please login." };
+                }
+                // Registration successful, but no token is returned. 
+                // Return success so the component can redirect to login.
+                return { success: true, message: data.message };
             } else {
-                return { success: false, message: "Registration failed. Unexpected server response." };
+                return { success: false, message: data.message || "Registration failed. Unexpected server response." };
             }
 
         } catch (error) {

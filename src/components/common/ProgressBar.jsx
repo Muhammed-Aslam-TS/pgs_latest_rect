@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import { memo } from 'react';
 
-const ProgressBar = memo(({ 
-  progress, 
+const ProgressBar = memo(({
+  progress,
   height = "h-1.5",
   barColor = "bg-blue-500",
   backgroundColor = "bg-white/10",
@@ -12,7 +12,7 @@ const ProgressBar = memo(({
   className = ""
 }) => {
   const progressValue = Math.min(Math.max(progress, 0), 100);
-  
+
   return (
     <div className={`flex items-center gap-2 w-full ${className}`}>
       {showLabel && labelPosition === "left" && (
@@ -20,16 +20,15 @@ const ProgressBar = memo(({
           {progressValue}%
         </span>
       )}
-      
-      <div className={`w-full ${height} ${backgroundColor} rounded-full relative overflow-hidden`}>
+
+      <div className={`w-full ${height} ${backgroundColor} rounded relative overflow-hidden`}>
         <div
-          className={`h-full rounded-full ${barColor} ${
-            animated ? "transition-all duration-300" : ""
-          }`}
+          className={`h-full rounded ${barColor} ${animated ? "transition-all duration-300" : ""
+            }`}
           style={{ width: `${progressValue}%` }}
         >
           {animated && (
-            <div className="absolute inset-0 bg-white/10 rounded-full" />
+            <div className="absolute inset-0 bg-white/10 rounded" />
           )}
         </div>
       </div>

@@ -17,17 +17,16 @@ const Wrapper = ({ content }) => {
 
         {/* Main Content Area - Scrollable */}
         <main
-          className={`flex-1 overflow-y-auto pt-16 transition-all duration-300 ease-in-out ${
-            sidebarOpen ? "translate-x-72" : "translate-x-0"
-          } md:translate-x-0 md:ml-72 relative z-0`}
+          className={`flex-1 overflow-y-auto pt-16 transition-all duration-300 ease-in-out ${sidebarOpen ? "translate-x-56" : "translate-x-0"
+            } md:translate-x-0 md:ml-56 relative z-0`}
         >
           {/* Subtle Page Background Effect */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px]" />
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[120px]" />
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 rounded blur-[120px]" />
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/5 rounded blur-[120px]" />
           </div>
 
-          <div className="relative z-10 p-4 sm:p-6 lg:p-8">
+          <div className="relative z-10 p-2 sm:p-3 lg:p-4">
             <Outlet />
           </div>
         </main>

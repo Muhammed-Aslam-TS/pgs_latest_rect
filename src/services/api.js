@@ -24,6 +24,35 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor for better error handling
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Retry on timeout or network error (up to retryAttempts times)
+    const maxRetries = config.api.retryAttempts || 3;
+    originalRequest._retryCount = originalRequest._retryCount || 0;
+
+    if (
+      originalRequest._retryCount < maxRetries &&
+      (error.code === "ECONNABORTED" || // timeout
+        error.code === "ERR_NETWORK" || // network error
+        (error.response && error.response.status >= 500)) // server error
+    ) {
+      originalRequest._retryCount += 1;
+      const delay = Math.pow(2, originalRequest._retryCount) * 1000; // exponential backoff
+      console.warn(
+        `Retrying request (${originalRequest._retryCount}/${maxRetries}) after ${delay}ms: ${originalRequest.url}`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return api(originalRequest);
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // API endpoints
 export const endpoints = {
   parking: {
@@ -70,6 +99,19 @@ export const endpoints = {
   },
 };
 
+// Helper to format error messages
+const formatError = (error, method) => {
+  if (error.code === "ECONNABORTED") {
+    console.error(`API ${method} Timeout: Request exceeded ${config.api.timeout}ms — ${error.config?.url}`);
+  } else if (error.code === "ERR_NETWORK") {
+    console.error(`API ${method} Network Error: Backend may be down — ${error.config?.url}`);
+  } else if (error.response) {
+    console.error(`API ${method} Error ${error.response.status}: ${error.response.data?.message || error.message} — ${error.config?.url}`);
+  } else {
+    console.error(`API ${method} Error:`, error.message);
+  }
+};
+
 // API methods
 export const apiService = {
   // GET requests
@@ -78,7 +120,7 @@ export const apiService = {
       const response = await api.get(endpoint, { params });
       return response.data;
     } catch (error) {
-      console.error("API GET Error:", error);
+      formatError(error, "GET");
       throw error;
     }
   },
@@ -89,7 +131,7 @@ export const apiService = {
       const response = await api.post(endpoint, data);
       return response.data;
     } catch (error) {
-      console.error("API POST Error:", error);
+      formatError(error, "POST");
       throw error;
     }
   },
@@ -100,7 +142,7 @@ export const apiService = {
       const response = await api.put(endpoint, data);
       return response.data;
     } catch (error) {
-      console.error("API PUT Error:", error);
+      formatError(error, "PUT");
       throw error;
     }
   },
@@ -111,8 +153,9 @@ export const apiService = {
       const response = await api.delete(endpoint);
       return response.data;
     } catch (error) {
-      console.error("API DELETE Error:", error);
+      formatError(error, "DELETE");
       throw error;
     }
   },
 };
+
