@@ -37,6 +37,11 @@ const ADMIN_MENU_ITEMS = [
     icon: "solar:camera-linear",
   },
   {
+    label: "Manage Slots",
+    to: "manage-slots",
+    icon: "solar:shield-check-linear",
+  },
+  {
     label: "System Settings",
     to: "#",
     icon: "solar:settings-linear",
@@ -65,6 +70,11 @@ const DASH_MENU_ITEMS = [
     label: "Live Monitoring",
     to: "Displays",
     icon: "solar:monitor-linear",
+  },
+  {
+    label: "Manage Slots",
+    to: "manage-slots",
+    icon: "solar:shield-check-linear",
   },
   {
     label: "Analytics",
