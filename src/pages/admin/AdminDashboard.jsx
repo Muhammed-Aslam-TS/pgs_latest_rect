@@ -2,11 +2,14 @@ import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import EntryExitReport from "../reports/legacy/EntryExitReport";
 import DailyOccupancyChart from "../reports/legacy/OccupancyReport";
+import { useState, useEffect } from "react";
+import { apiService, endpoints } from "../../services/api";
+import { initSocket } from "../../services/socket";
 
 const StatCard = ({ title, value, color, icon, detail }) => (
     <motion.div
         initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-        className="relative group p-6 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-all shadow-sm"
+        className="relative group p-6 rounded bg-white/5 border border-white/5 hover:border-white/10 transition-all shadow-sm flex-1"
     >
         <div className="flex items-center justify-between mb-4">
             <div className={`p-3 rounded bg-${color}-500/10`}>
@@ -29,17 +32,60 @@ const StatCard = ({ title, value, color, icon, detail }) => (
 );
 
 const AdminDashboard = () => {
-    const stats = [
-        { title: "Total Capacity", value: "1,240", color: "blue", icon: "solar:parking-linear", detail: "Across 4 active hubs" },
-        { title: "Occupied Slots", value: "842", color: "rose", icon: "solar:signpost-linear", detail: "Real-time occupancy at 68%" },
-        { title: "Available Now", value: "398", color: "emerald", icon: "solar:leaf-linear", detail: "Ready for traffic influx" },
-    ];
+    const [spaces, setSpaces] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const logs = [
+    // Hardcoded logs for now since no specific endpoint was verified
+    const [logs, setLogs] = useState([
         { vehicle: "TN-01-AX-4231", time: "12:14 PM", status: "ENTRY", gate: "Main North Gate" },
         { vehicle: "PY-01-BZ-1122", time: "12:08 PM", status: "EXIT", gate: "South Exit Hub" },
         { vehicle: "KA-05-MM-9900", time: "11:55 AM", status: "ENTRY", gate: "Level 1 Transit" },
         { vehicle: "DL-03-CC-5566", time: "11:42 AM", status: "ENTRY", gate: "B2 Ramp Gate" },
+    ]);
+
+    const fetchData = async () => {
+        try {
+            const data = await apiService.get(endpoints.spaces.getList);
+            if (data && data.data) {
+                setSpaces(data.data);
+            }
+        } catch (err) {
+            console.error("Error fetching spaces for dashboard", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+
+        const socket = initSocket();
+        if (socket) {
+            socket.on('dashboard', (msg) => {
+                // If dashboard socket sends an update, re-fetch spaces
+                fetchData();
+            });
+            socket.on('spaceUpdate', () => {
+                fetchData();
+            });
+        }
+        return () => {
+            if (socket) {
+                socket.off('dashboard');
+                socket.off('spaceUpdate');
+            }
+        };
+    }, []);
+
+    const totalCapacity = spaces.length;
+    const occupiedSlots = spaces.filter(s => s.device_occupied).length;
+    const availableNow = totalCapacity - occupiedSlots;
+    const occupancyRate = totalCapacity > 0 ? Math.round((occupiedSlots / totalCapacity) * 100) : 0;
+
+    const stats = [
+        { title: "Total Capacity", value: loading ? "..." : totalCapacity, color: "blue", icon: "solar:parking-linear", detail: "Across all active hubs" },
+        { title: "Occupied Slots", value: loading ? "..." : occupiedSlots, color: "rose", icon: "solar:signpost-linear", detail: `Real-time occupancy at ${occupancyRate}%` },
+        { title: "Available Now", value: loading ? "..." : availableNow, color: "emerald", icon: "solar:leaf-linear", detail: "Ready for traffic influx" },
     ];
 
     return (
@@ -54,23 +100,23 @@ const AdminDashboard = () => {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1 font-medium italic">Command Center Status: All systems synchronized.</p>
                 </div>
-                <div className="flex items-center gap-2 bg-white/5 p-1 rounded border border-white/5">
+                <div className="flex flex-wrap items-center gap-2 bg-white/5 p-1 rounded border border-white/5">
                     <button className="px-5 py-2.5 rounded hover:bg-white/5 text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-all">Export Report</button>
-                    <button className="px-5 py-2.5 rounded bg-blue-600 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center gap-2">
-                        <Icon icon="solar:restart-linear" />
+                    <button onClick={fetchData} className="px-5 py-2.5 rounded bg-blue-600 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center gap-2">
+                        <Icon icon="solar:restart-linear" className={loading ? "animate-spin" : ""} />
                         System Sync
                     </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex flex-col md:flex-row gap-6">
                 {stats.map((s, idx) => <StatCard key={idx} {...s} />)}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-12">
                 <div className="lg:col-span-8 space-y-8">
-                    <div className="p-8 rounded-[2rem] bg-white/5 border border-white/5 shadow-sm">
-                        <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+                    <div className="p-6 md:p-8 rounded-[2rem] bg-white/5 border border-white/5 shadow-sm overflow-x-auto">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-white/5 gap-4">
                             <div className="flex items-center gap-3">
                                 <Icon icon="solar:graph-up-linear" className="text-blue-500 text-xl" />
                                 <h2 className="text-lg font-bold text-white tracking-tight">Real-time Traffic Flow</h2>
@@ -83,7 +129,7 @@ const AdminDashboard = () => {
                         <EntryExitReport />
                     </div>
 
-                    <div className="p-8 rounded-[2rem] bg-white/5 border border-white/5 shadow-sm">
+                    <div className="p-6 md:p-8 rounded-[2rem] bg-white/5 border border-white/5 shadow-sm overflow-x-auto">
                         <div className="flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
                             <Icon icon="solar:pie-chart-linear" className="text-emerald-500 text-xl" />
                             <h2 className="text-lg font-bold text-white tracking-tight">Sector Utilization Analysis</h2>
@@ -93,7 +139,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="lg:col-span-4">
-                    <div className="sticky top-24 p-8 rounded-[2rem] bg-[#0b0f1a] border border-white/5">
+                    <div className="sticky top-24 p-6 md:p-8 rounded-[2rem] bg-[#0b0f1a] border border-white/5">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-sm font-bold text-white uppercase tracking-widest">Recent Activity</h2>
                             <Icon icon="solar:tuning-linear" className="text-slate-600 cursor-pointer hover:text-white" />

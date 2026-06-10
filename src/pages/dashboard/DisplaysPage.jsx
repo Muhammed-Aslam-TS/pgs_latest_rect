@@ -112,7 +112,10 @@ const Displays = () => {
             const pId = display.parking_id || display.parkingId || "unassigned";
             const fId = (display.display_connections_id && display.display_connections_id[0]) || display.floorId || "unassigned";
 
-            if (!groups[pId]) groups[pId] = { name: parkings.find(p => (p._id || p.id || p.parking_id) == pId)?.parking_name || "Unknown Parking", floors: {} };
+            if (!groups[pId]) {
+                const matchedParking = parkings.find(p => (p._id || p.id || p.parking_id) == pId);
+                groups[pId] = { name: matchedParking?.name || matchedParking?.parking_name || "Unknown Parking", floors: {} };
+            }
             if (!groups[pId].floors[fId]) groups[pId].floors[fId] = { name: floors.find(f => (f._id || f.id) == fId)?.floor_name || "General Area", items: [] };
 
             groups[pId].floors[fId].items.push(display);

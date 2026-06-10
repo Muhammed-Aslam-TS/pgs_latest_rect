@@ -63,7 +63,7 @@ export default function Devices() {
         </option>
         {parkings?.map((item, index) => (
           <option key={index} value={item.parking_id}>
-            {item.parking_name}
+            {item.name || item.parking_name}
           </option>
         ))}
       </select>

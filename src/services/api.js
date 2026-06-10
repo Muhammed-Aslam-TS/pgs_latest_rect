@@ -73,6 +73,11 @@ export const endpoints = {
     getAll: config.endpoints.floors,
     getById: (id) => `${config.endpoints.floors}/${id}`,
   },
+  spaces: {
+    getAll: config.endpoints.spaces,
+    getList: config.endpoints.spaceslist,
+    getById: (id) => `${config.endpoints.spaces}/${id}`,
+  },
   reports: {
     occupancy: `${config.endpoints.reports}/occupancy`,
     entryExit: `${config.endpoints.reports}/entry-exit`,

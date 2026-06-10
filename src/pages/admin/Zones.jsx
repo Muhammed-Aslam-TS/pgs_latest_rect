@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ReusableTable from "../../components/common/reusableTable";
 import CrudModal from "../../components/common/CrudModal";
 import { apiService } from "../../services/api";
@@ -10,8 +11,12 @@ export default function Zones() {
   const [loading, setLoading] = useState(false);
   const [parkings, setParkings] = useState([]);
   const [floors, setFloors] = useState([]);
-  const [selectedParking, setSelectedParking] = useState("");
-  const [selectedFloor, setSelectedFloor] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialParkingId = searchParams.get("parkingId") || "";
+  const initialFloorId = searchParams.get("floorId") || "";
+
+  const [selectedParking, setSelectedParking] = useState(initialParkingId);
+  const [selectedFloor, setSelectedFloor] = useState(initialFloorId);
   const [data, setData] = useState([]);
   const [currentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -296,7 +301,10 @@ export default function Zones() {
               <select
                 className="bg-white/5 border border-white/10 rounded py-2 px-4 pr-10 text-[10px] font-black uppercase tracking-widest text-white appearance-none outline-none focus:border-blue-500/30 transition-all cursor-pointer min-w-[160px]"
                 value={selectedParking}
-                onChange={(e) => setSelectedParking(e.target.value)}
+                onChange={(e) => {
+                  setSelectedParking(e.target.value);
+                  setSearchParams({ parkingId: e.target.value });
+                }}
               >
                 <option value="" disabled>Select Vessel</option>
                 {parkings.map(p => <option key={p._id} value={p._id}>{p.name || p.parking_name}</option>)}
@@ -310,7 +318,10 @@ export default function Zones() {
               <select
                 className="bg-white/5 border border-white/10 rounded py-2 px-4 pr-10 text-[10px] font-black uppercase tracking-widest text-white appearance-none outline-none focus:border-emerald-500/30 transition-all cursor-pointer min-w-[160px]"
                 value={selectedFloor}
-                onChange={(e) => setSelectedFloor(e.target.value)}
+                onChange={(e) => {
+                  setSelectedFloor(e.target.value);
+                  setSearchParams({ parkingId: selectedParking, floorId: e.target.value });
+                }}
                 disabled={!selectedParking}
               >
                 <option value="" disabled>Select Level</option>

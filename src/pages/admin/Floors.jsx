@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import ReusableTable from "../../components/common/reusableTable";
 import CrudModal from "../../components/common/CrudModal";
 import { apiService } from "../../services/api";
@@ -8,7 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Floors() {
   const [loading, setLoading] = useState(false);
-  const [selectedParking, setSelectedParking] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialParkingId = searchParams.get("parkingId") || "";
+  const [selectedParking, setSelectedParking] = useState(initialParkingId);
   const [parkings, setParkings] = useState([]);
   const [data, setData] = useState([]);
   const [currentPage] = useState(1);
@@ -282,7 +285,10 @@ export default function Floors() {
             <select
               className="bg-[#1e293b]/60 backdrop-blur-xl border border-white/5 rounded-[1.5rem] pl-10 pr-10 py-3 text-xs font-black uppercase tracking-wider text-white appearance-none outline-none focus:border-blue-500/40 transition-all cursor-pointer min-w-[240px]"
               value={selectedParking}
-              onChange={(e) => setSelectedParking(e.target.value)}
+              onChange={(e) => {
+                setSelectedParking(e.target.value);
+                setSearchParams({ parkingId: e.target.value });
+              }}
             >
               <option value="" disabled>Select Vessel Hub</option>
               {parkings.map(p => <option key={p._id} value={p._id}>{p.name || p.parking_name}</option>)}

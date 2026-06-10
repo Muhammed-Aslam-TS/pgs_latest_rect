@@ -206,7 +206,7 @@ const DisplayConfigPage = () => {
                                             className="w-full bg-[#1e293b] border border-white/10 rounded px-4 py-2.5 text-sm"
                                         >
                                             <option value="">Select</option>
-                                            {parkings.map(p => <option key={p._id || p.id} value={p._id || p.id}>{p.parking_name}</option>)}
+                                            {parkings.map(p => <option key={p._id || p.id} value={p._id || p.id}>{p.name || p.parking_name}</option>)}
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
@@ -280,7 +280,10 @@ const DisplayConfigPage = () => {
                                                 </td>
                                                 <td className="py-4 px-2">
                                                     <div className="text-xs text-slate-300">
-                                                        {parkings.find(p => (p._id || p.id) == d.parking_id)?.parking_name}
+                                                        {(() => {
+                                                            const p = parkings.find(p => (p._id || p.id) == d.parking_id);
+                                                            return p?.name || p?.parking_name || "Unknown";
+                                                        })()}
                                                     </div>
                                                     <div className="text-[10px] text-blue-400 uppercase font-bold tracking-tighter">
                                                         {d.display_type === "zone" ? "Sector: " : "Floor: "}

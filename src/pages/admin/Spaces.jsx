@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ReusableTable from "../../components/common/reusableTable";
 import { apiService } from "../../services/api";
 import { Icon } from "@iconify/react";
@@ -12,9 +13,14 @@ export default function Spaces() {
   const [parkings, setParkings] = useState([]);
   const [floors, setFloors] = useState([]);
   const [zones, setZones] = useState([]);
-  const [selectedParking, setSelectedParking] = useState("");
-  const [selectedFloor, setSelectedFloor] = useState("");
-  const [selectedZone, setSelectedZone] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialParkingId = searchParams.get("parkingId") || "";
+  const initialFloorId = searchParams.get("floorId") || "";
+  const initialZoneId = searchParams.get("zoneId") || "";
+
+  const [selectedParking, setSelectedParking] = useState(initialParkingId);
+  const [selectedFloor, setSelectedFloor] = useState(initialFloorId);
+  const [selectedZone, setSelectedZone] = useState(initialZoneId);
   const [data, setData] = useState([]);
   const [allSpaces, setAllSpaces] = useState([]);
   const [currentPage] = useState(1);
@@ -296,7 +302,10 @@ export default function Spaces() {
           <select
             className="bg-white/5 border border-white/5 rounded py-2 px-4 text-[10px] font-black uppercase tracking-widest text-white outline-none cursor-pointer min-w-[140px] appearance-none"
             value={selectedParking}
-            onChange={(e) => setSelectedParking(e.target.value)}
+            onChange={(e) => {
+              setSelectedParking(e.target.value);
+              setSearchParams({ parkingId: e.target.value });
+            }}
           >
             <option value="" disabled>Vessel</option>
             {parkings.map(p => <option key={p._id} value={p._id}>{p.name || p.parking_name}</option>)}
@@ -305,7 +314,10 @@ export default function Spaces() {
           <select
             className="bg-white/5 border border-white/5 rounded py-2 px-4 text-[10px] font-black uppercase tracking-widest text-white outline-none cursor-pointer min-w-[140px] appearance-none"
             value={selectedFloor}
-            onChange={(e) => setSelectedFloor(e.target.value)}
+            onChange={(e) => {
+              setSelectedFloor(e.target.value);
+              setSearchParams({ parkingId: selectedParking, floorId: e.target.value });
+            }}
             disabled={!selectedParking}
           >
             <option value="" disabled>Level</option>
@@ -315,7 +327,10 @@ export default function Spaces() {
           <select
             className="bg-white/5 border border-white/5 rounded py-2 px-4 text-[10px] font-black uppercase tracking-widest text-white outline-none cursor-pointer min-w-[140px] appearance-none"
             value={selectedZone}
-            onChange={(e) => setSelectedZone(e.target.value)}
+            onChange={(e) => {
+              setSelectedZone(e.target.value);
+              setSearchParams({ parkingId: selectedParking, floorId: selectedFloor, zoneId: e.target.value });
+            }}
             disabled={!selectedFloor}
           >
             <option value="" disabled>Sector</option>

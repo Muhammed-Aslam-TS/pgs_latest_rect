@@ -44,6 +44,23 @@ export const Home = () => {
   const [displayFilterParking, setDisplayFilterParking] = useState("all");
   const [displayFilterFloor, setDisplayFilterFloor] = useState("all");
 
+  const [graphFilterParking, setGraphFilterParking] = useState("all");
+  const [graphFilterFloor, setGraphFilterFloor] = useState("all");
+  const [graphFloors, setGraphFloors] = useState([]);
+
+  useEffect(() => {
+    if (graphFilterParking !== "all") {
+      apiService.get(endpoints.floors.getById(graphFilterParking))
+        .then(res => {
+          const floorsData = res.floors_data || res.data || [];
+          setGraphFloors(floorsData);
+        })
+        .catch(err => console.error("Error fetching graph floors:", err));
+    } else {
+      setGraphFloors([]);
+    }
+  }, [graphFilterParking]);
+
   const headerData = useMemo(() => {
     const totalParkings = parkingSections.length;
     const totalSlots = parkingSections.reduce((acc, s) => acc + (s.total_spaces || 0), 0);
@@ -90,10 +107,11 @@ export const Home = () => {
   const fetchFloors = useCallback(async (parkingId) => {
     try {
       const data = await apiService.get(endpoints.floors.getById(parkingId));
+      const floorsData = data.floors_data || data.data || [];
 
-      const mappedFloors = data.data.map((floor) => ({
+      const mappedFloors = floorsData.map((floor) => ({
         _id: floor._id,
-        title: floor.floor_name,
+        title: floor.floor_name || floor.name,
         total_spaces: floor.total_spaces,
         occupied: floor.occupied,
         free: floor.free,
@@ -131,8 +149,61 @@ export const Home = () => {
   }, []);
 
   const flowData = useMemo(() => {
-    return graphData?.parkingByDay || [];
-  }, [graphData]);
+    const rawHistory = graphData?.parkingByDay || [];
+    if (!rawHistory.length) return [];
+
+    // Check if it's our mock data or real DB data
+    const isRealData = !!rawHistory[0].parkingArray;
+
+    if (!isRealData) {
+      // It's mock data, just return it
+      return rawHistory;
+    }
+
+    let prevOccupied = 0;
+
+    return rawHistory.map((snapshot, index) => {
+      let currentOccupied = 0;
+      let totalSpaces = 1;
+
+      if (graphFilterParking === "all") {
+        currentOccupied = snapshot.parkingArray.reduce((acc, p) => acc + (p.total_occupied || 0), 0);
+        totalSpaces = snapshot.parkingArray.reduce((acc, p) => acc + (p.total_spaces || 1), 0) || 1;
+      } else {
+        // filter by selected parking
+        const selectedP = parkingSections.find(p => String(p._id) === String(graphFilterParking));
+        if (graphFilterFloor === "all") {
+           const pData = snapshot.parkingArray.find(p => p.name === selectedP?.title || p.name === selectedP?.parking_name);
+           if (pData) {
+              currentOccupied = pData.total_occupied || 0;
+              totalSpaces = pData.total_spaces || 1;
+           }
+        } else {
+           // filter by specific floor
+           const selectedF = graphFloors.find(f => String(f._id || f.id) === String(graphFilterFloor));
+           const fData = snapshot.floorArray.find(f => f.floor_name === selectedF?.title || f.floor_name === selectedF?.floor_name);
+           if (fData) {
+              currentOccupied = fData.occupied || 0;
+              totalSpaces = selectedF?.total_spaces || 1;
+           }
+        }
+      }
+
+      const occupancyPercent = Math.round((currentOccupied / totalSpaces) * 100);
+      
+      const entries = index === 0 ? 0 : Math.max(0, currentOccupied - prevOccupied);
+      const exits = index === 0 ? 0 : Math.max(0, prevOccupied - currentOccupied);
+      prevOccupied = currentOccupied;
+
+      return {
+        time: snapshot.time,
+        occupancy: occupancyPercent,
+        entries: entries,
+        exits: exits
+      };
+    });
+
+  }, [graphData, graphFilterParking, graphFilterFloor, parkingSections, graphFloors]);
 
   const processData = useCallback((data) => {
     const rawData = data?.data || (Array.isArray(data) ? data : null);
@@ -140,7 +211,7 @@ export const Home = () => {
     if (rawData && Array.isArray(rawData)) {
       const mapped = rawData.map((section) => ({
         ...section,
-        title: section.parking_name || section.title || "Unnamed Section",
+        title: section.name || section.parking_name || section.title || "Unnamed Section",
         occupancy: Math.round(
           (section.total_occupied / section.total_spaces) * 100
         ),
@@ -302,10 +373,14 @@ export const Home = () => {
         if (!data.space_obj || !prev || prev.length === 0) return prev;
         return prev.map(space => {
           if (String(space.space_id) === String(data.space_obj.space_id)) {
+            const isOcc = data.space_obj.device_occupied;
+            const upTime = data.space_obj.updatedAt || new Date().toISOString();
             return {
               ...space,
-              device_occupied: data.space_obj.device_occupied,
-              updatedAt: data.space_obj.updatedAt || new Date().toISOString()
+              device_occupied: isOcc,
+              status: isOcc ? 'occupied' : 'vacant',
+              updatedAt: upTime,
+              entryTime: new Date(upTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
           }
           return space;
@@ -397,14 +472,22 @@ export const Home = () => {
 
     try {
       // Attempt to fetch real spaces 
-      const res = await apiService.get(`/routes/admin/getSpacesByZone/${zone._id}`);
+      const res = await apiService.get(`/api/getSpacesByZone/${zone._id}`);
       if (res && res.data) {
-        setZoneSpaces(res.data);
+        const normalized = res.data.map(space => ({
+          ...space,
+          id: space._id,
+          name: space.space_name || `S-${space.space_id}`,
+          status: space.device_occupied ? 'occupied' : 'vacant',
+          entryTime: space.updatedAt ? new Date(space.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'NA'
+        }));
+        setZoneSpaces(normalized);
       } else {
         // Fallback to dummy data if API fails or returns empty
         const spaceCount = zone.total_spaces || 8;
         const dummy = Array.from({ length: spaceCount }, (_, i) => ({
           id: `S-${(i + 1).toString().padStart(2, '0')}`,
+          name: `S-${(i + 1).toString().padStart(2, '0')}`,
           status: Math.random() > 0.4 ? 'occupied' : 'vacant',
           entryTime: new Date(Date.now() - Math.random() * 10000000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
@@ -416,6 +499,7 @@ export const Home = () => {
       const spaceCount = zone.total_spaces || 8;
       const dummy = Array.from({ length: spaceCount }, (_, i) => ({
         id: `S-${(i + 1).toString().padStart(2, '0')}`,
+        name: `S-${(i + 1).toString().padStart(2, '0')}`,
         status: Math.random() > 0.4 ? 'occupied' : 'vacant',
         entryTime: new Date(Date.now() - Math.random() * 10000000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }));
@@ -438,7 +522,7 @@ export const Home = () => {
     setActiveSpaceMenu(activeSpaceMenu === spaceId ? null : spaceId);
   };
 
-  const handleSpaceAction = (action, spaceId) => {
+  const handleSpaceAction = async (action, spaceId) => {
     console.log(`${action} clicked for space: ${spaceId}`);
     if (action === 'blockSpace') {
       setBlockedSpaces(prev => { const next = new Set(prev); next.add(spaceId); return next; });
@@ -448,6 +532,33 @@ export const Home = () => {
       setLocatingSpaces(prev => { const next = new Set(prev); next.add(spaceId); return next; });
     } else if (action === 'locateOff') {
       setLocatingSpaces(prev => { const next = new Set(prev); next.delete(spaceId); return next; });
+    }
+
+    // Connect to backend API if it's a real MongoDB ObjectId
+    const isMongoId = typeof spaceId === 'string' && spaceId.length === 24 && /^[0-9a-fA-F]{24}$/.test(spaceId);
+    if (isMongoId) {
+      try {
+        let endpoint = "";
+        let payload = { spaceObjID: spaceId };
+        if (action === 'blockSpace') {
+          endpoint = "/api/blockSpaceBySpace";
+        } else if (action === 'unblockSpace') {
+          endpoint = "/api/unBlockSpaceBySpace";
+        } else if (action === 'locateOn') {
+          endpoint = "/api/locateOnSpaceBySpace";
+        } else if (action === 'locateOff') {
+          endpoint = "/api/locateOffSpaceBySpace";
+        } else if (action === 'refresh') {
+          endpoint = "/api/syncSpaceBySpace";
+        }
+
+        if (endpoint) {
+          const res = await apiService.post(endpoint, payload);
+          console.log(`Backend action ${action} response:`, res);
+        }
+      } catch (err) {
+        console.error(`Failed to execute backend action ${action}:`, err);
+      }
     }
     setActiveSpaceMenu(null);
   };
@@ -527,7 +638,7 @@ export const Home = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-1 h-5 bg-indigo-500 rounded" />
                     <h2 className="text-lg font-bold tracking-tight text-white uppercase">
-                      {activeSection.parking_name || activeSection.title}
+                      {activeSection.name || activeSection.parking_name || activeSection.title}
                     </h2>
                   </div>
                   <button
@@ -601,7 +712,74 @@ export const Home = () => {
 
       {/* Analytics & Performance Mesh (Full Width) */}
       <div className="flex flex-col gap-2 mt-2 w-full">
+          {/* Analytics Filters */}
+          <div className="bg-[#0b0f1a] border border-white/5 p-4 rounded shadow-2xl flex flex-wrap gap-4 items-center w-full">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filter Analytics:</span>
+            <select 
+              className="bg-white/5 border border-white/10 rounded py-2 px-4 text-xs font-bold text-white outline-none focus:border-purple-500/50 transition-all cursor-pointer"
+              value={graphFilterParking}
+              onChange={e => { setGraphFilterParking(e.target.value); setGraphFilterFloor("all"); }}
+            >
+              <option value="all">All Parkings</option>
+              {parkingSections.map(p => <option key={p._id} value={p._id}>{p.title}</option>)}
+            </select>
+
+            <select 
+              className="bg-white/5 border border-white/10 rounded py-2 px-4 text-xs font-bold text-white outline-none focus:border-purple-500/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              value={graphFilterFloor}
+              onChange={e => setGraphFilterFloor(e.target.value)}
+              disabled={graphFilterParking === "all"}
+            >
+              <option value="all">All Floors</option>
+              {graphFilterParking !== "all" && graphFloors.map(f => <option key={f._id || f.id} value={f._id || f.id}>{f.title}</option>)}
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 w-full">
+            {/* Occupancy Trend Analysis */}
+            <div className="bg-[#0b0f1a] border border-white/5 p-6 rounded shadow-2xl lg:col-span-2">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-5 bg-purple-500 rounded" />
+                  <h2 className="text-base font-bold tracking-tight text-white uppercase">Live Occupancy Trend</h2>
+                </div>
+                <span className="text-[10px] font-black text-purple-400 bg-purple-500/10 px-3 py-1 rounded uppercase tracking-widest animate-pulse">Real-Time Analytics</span>
+              </div>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={flowData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                    <XAxis 
+                      dataKey="time" 
+                      stroke="#475569" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="#475569" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                      itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="occupancy"
+                      stroke="#a855f7"
+                      strokeWidth={3}
+                      dot={{ fill: '#a855f7', strokeWidth: 2, r: 4, stroke: '#0b0f1a' }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                      name="Occupancy %"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
             {/* Main Utilization Trend */}
             <div className="bg-[#0b0f1a] border border-white/5 p-6 rounded shadow-2xl lg:col-span-2">
               <div className="flex items-center justify-between mb-8">
@@ -874,26 +1052,27 @@ export const Home = () => {
           maxWidth="max-w-[98vw] sm:max-w-3xl lg:max-w-5xl"
         >
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {zoneSpaces.map((space) => (
-              <div
-                key={space.id}
-                className={`group flex flex-col p-5 rounded border transition-all duration-300 relative overflow-hidden ${space.status === 'occupied'
-                  ? 'bg-rose-500/5 border-rose-500/10'
-                  : 'bg-emerald-500/5 border-emerald-500/10'
-                  }`}
-                onClick={() => setActiveSpaceMenu(null)}
-              >
-                {/* Management Control Overlay */}
-                {activeSpaceMenu === space.id && (() => {
-                  const isBlocked = blockedSpaces.has(space.id);
-                  const isLocating = locatingSpaces.has(space.id);
-                  return (
+            {zoneSpaces.map((space) => {
+              const isBlocked = blockedSpaces.has(space.id);
+              const isLocating = locatingSpaces.has(space.id);
+              const isOccupied = space.status === 'occupied' || isBlocked;
+              return (
+                <div
+                  key={space.id}
+                  className={`group flex flex-col p-5 rounded border transition-all duration-300 relative overflow-hidden ${isOccupied
+                    ? 'bg-rose-500/5 border-rose-500/10'
+                    : 'bg-emerald-500/5 border-emerald-500/10'
+                    }`}
+                  onClick={() => setActiveSpaceMenu(null)}
+                >
+                  {/* Management Control Overlay */}
+                  {activeSpaceMenu === space.id && (
                     <div
                       className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[#0b0f1a]/95 rounded px-4"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-between w-full mb-2">
-                        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{space.id} Management</span>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{space.name || space.id} Management</span>
                         <button
                           className="p-1.5 rounded hover:bg-white/10 text-slate-500 hover:text-white transition-colors"
                           onClick={(e) => { e.stopPropagation(); setActiveSpaceMenu(null); }}
@@ -909,7 +1088,7 @@ export const Home = () => {
                           }`}
                         onClick={(e) => { e.stopPropagation(); handleSpaceAction(isBlocked ? 'unblockSpace' : 'blockSpace', space.id); }}
                       >
-                        {isBlocked ? 'Restore Entry' : 'Manual Lockout'}
+                        {isBlocked ? 'Unblock' : 'Block'}
                       </button>
 
                       <button
@@ -919,7 +1098,7 @@ export const Home = () => {
                           }`}
                         onClick={(e) => { e.stopPropagation(); handleSpaceAction(isLocating ? 'locateOff' : 'locateOn', space.id); }}
                       >
-                        {isLocating ? 'End Homing' : 'Start Homing'}
+                        {isLocating ? 'Location Off' : 'Location On'}
                       </button>
 
                       <button
@@ -929,49 +1108,49 @@ export const Home = () => {
                         Sync Node
                       </button>
                     </div>
-                  );
-                })()}
+                  )}
 
-                <div className="flex items-center justify-between mb-4">
-                  <span className={`text-sm font-bold tracking-tight ${space.status === 'occupied' ? 'text-rose-400' : 'text-emerald-400'}`}>{space.id}</span>
-                  <MenuButton
-                    isOpen={activeSpaceMenu === space.id}
-                    onClick={(e) => handleSpaceMenuClick(e, space.id)}
-                    className="scale-75 -mr-2 opacity-50 hover:opacity-100 transition-opacity"
-                  />
-                </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`text-sm font-bold tracking-tight ${isOccupied ? 'text-rose-400' : 'text-emerald-400'}`}>{space.name || space.id}</span>
+                    <MenuButton
+                      isOpen={activeSpaceMenu === space.id}
+                      onClick={(e) => handleSpaceMenuClick(e, space.id)}
+                      className="scale-75 -mr-2 opacity-50 hover:opacity-100 transition-opacity"
+                    />
+                  </div>
 
-                <div className="flex-grow flex items-center justify-center py-4">
-                  <div className={`p-4 rounded ${space.status === 'occupied' ? 'bg-rose-500/10' : 'bg-emerald-500/10'}`}>
-                    {space.status === 'occupied' ? (
-                      <Car size={24} className="text-rose-400" />
-                    ) : (
-                      <CheckCircle size={24} className="text-emerald-400" />
+                  <div className="flex-grow flex items-center justify-center py-4">
+                    <div className={`p-4 rounded ${isOccupied ? 'bg-rose-500/10' : 'bg-emerald-500/10'}`}>
+                      {isOccupied ? (
+                        <Car size={24} className="text-rose-400" />
+                      ) : (
+                        <CheckCircle size={24} className="text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">State</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${isOccupied ? 'text-rose-400' : 'text-emerald-400'
+                        }`}>
+                        {isBlocked ? 'blocked' : space.status}
+                      </span>
+                    </div>
+
+                    {isOccupied && (
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                        <div className="flex items-center gap-1.5 font-bold uppercase tracking-tighter">
+                          <Clock size={11} />
+                          <span>{isBlocked ? 'Blocked Since' : 'Docked Since'}</span>
+                        </div>
+                        <span className="text-white font-mono">{isBlocked ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : space.entryTime}</span>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">State</span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${space.status === 'occupied' ? 'text-rose-400' : 'text-emerald-400'
-                      }`}>
-                      {space.status}
-                    </span>
-                  </div>
-
-                  {space.status === 'occupied' && (
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <div className="flex items-center gap-1.5 font-bold uppercase tracking-tighter">
-                        <Clock size={11} />
-                        <span>Docked Since</span>
-                      </div>
-                      <span className="text-white font-mono">{space.entryTime}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Modal>
       )}
