@@ -1,12 +1,43 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import PropTypes from "prop-types";
 import ReusableTable from "../../components/common/reusableTable";
 import { apiService } from "../../services/api";
 import { Icon } from "@iconify/react";
 import { showSuccessToast, showErrorToast } from "../../utils/toast";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { useSocket } from "../../hooks/useSocket";
+
+const SpaceSelectCell = React.memo(({ value, onChange, options }) => {
+  return (
+    <select
+      className="bg-white/5 border border-white/10 rounded px-4 py-2 text-xs font-mono font-bold text-white w-40 focus:border-blue-500/50 outline-none transition-all cursor-pointer appearance-none"
+      value={value}
+      onChange={onChange}
+    >
+      <option value="" disabled>Target ID</option>
+      {options.map(space => (
+        <option key={space._id || space.space_id} value={space.space_id} className={space.configure ? "text-slate-400" : ""}>
+          ID {space.space_id} {space.configure ? "(In Use)" : ""}
+        </option>
+      ))}
+    </select>
+  );
+});
+
+SpaceSelectCell.displayName = "SpaceSelectCell";
+
+SpaceSelectCell.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func.isRequired,
+  options: PropTypes.arrayOf(
+    PropTypes.shape({
+      _id: PropTypes.string,
+      space_id: PropTypes.number.isRequired,
+      configure: PropTypes.bool,
+    })
+  ).isRequired,
+};
 
 export default function Spaces() {
   const [loading, setLoading] = useState(false);
@@ -47,6 +78,7 @@ export default function Spaces() {
       const res = await apiService.get("/api/parkings");
       setParkings(res.data || []);
     } catch (error) {
+      console.error("Fetch Parkings Error:", error);
       showErrorToast("Failed to fetch vessel network.");
     }
   };
@@ -57,6 +89,7 @@ export default function Spaces() {
       const res = await apiService.get(`/api/floors/${parkingId}`);
       setFloors(res.data || res.floors_data || []);
     } catch (error) {
+      console.error("Fetch Floors Error:", error);
       setFloors([]);
     }
   };
@@ -67,11 +100,12 @@ export default function Spaces() {
       const res = await apiService.get(`/api/zones/${floorId}`);
       setZones(res.data || []);
     } catch (error) {
+      console.error("Fetch Zones Error:", error);
       setZones([]);
     }
   };
 
-  const fetchZoneDetails = async (zoneId) => {
+  const fetchZoneDetails = useCallback(async (zoneId) => {
     if (!zoneId) return;
     setLoading(true);
     try {
@@ -116,7 +150,7 @@ export default function Spaces() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (selectedParking) {
@@ -144,9 +178,9 @@ export default function Spaces() {
       setData([]);
       setAllSpaces([]);
     }
-  }, [selectedZone]);
+  }, [selectedZone, fetchZoneDetails]);
 
-  const handleConnect = async (row, index) => {
+  const handleConnect = useCallback(async (row) => {
     const spaceId = row.temp_space_id;
     if (!spaceId) {
       showErrorToast("Target Space ID required.");
@@ -174,13 +208,14 @@ export default function Spaces() {
         showErrorToast(`Conflict: ${res.message} already occupies this ID.`);
       }
     } catch (error) {
+      console.error("Connect error:", error);
       showErrorToast("Link establishment failed.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedZone, fetchZoneDetails]);
 
-  const handleDisconnect = async (row) => {
+  const handleDisconnect = useCallback(async (row) => {
     setLoading(true);
     try {
       const payload = {
@@ -195,19 +230,45 @@ export default function Spaces() {
       showSuccessToast("Space de-registered.");
       fetchZoneDetails(selectedZone);
     } catch (error) {
+      console.error("Disconnect error:", error);
       showErrorToast("Failed to sever link.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedZone, fetchZoneDetails]);
 
-  const handleInputChange = (index, field, value) => {
+  const handleInputChange = useCallback((index, field, value) => {
     setData(prev => {
       const newData = [...prev];
-      newData[index][field] = value;
+      newData[index] = {
+        ...newData[index],
+        [field]: value
+      };
       return newData;
     });
-  };
+  }, []);
+
+  const unconfiguredSpaces = useMemo(() => {
+    return allSpaces.filter(space => !space.configure);
+  }, [allSpaces]);
+
+  const getSpaceOptions = useCallback((row) => {
+    const rowTempId = row.temp_space_id;
+    const rowDeviceId = row.device_id;
+    
+    const opts = [...unconfiguredSpaces];
+    
+    if (rowTempId && !opts.some(s => s.space_id === rowTempId)) {
+      const match = allSpaces.find(s => s.space_id === rowTempId);
+      if (match) opts.push(match);
+    }
+    if (rowDeviceId && !opts.some(s => s.space_id === rowDeviceId)) {
+      const match = allSpaces.find(s => s.space_id === rowDeviceId);
+      if (match) opts.push(match);
+    }
+    
+    return opts.sort((a, b) => a.space_id - b.space_id);
+  }, [unconfiguredSpaces, allSpaces]);
 
   const columns = useMemo(() => [
     {
@@ -227,18 +288,11 @@ export default function Spaces() {
         row.configure ? (
           <span className="font-mono text-emerald-400 font-black">#{row.device_id}</span>
         ) : (
-          <select
-            className="bg-white/5 border border-white/10 rounded px-4 py-2 text-xs font-mono font-bold text-white w-40 focus:border-blue-500/50 outline-none transition-all cursor-pointer appearance-none"
+          <SpaceSelectCell
             value={row.temp_space_id || ""}
             onChange={(e) => handleInputChange(index, "temp_space_id", e.target.value)}
-          >
-            <option value="" disabled>Target ID</option>
-            {allSpaces.map(space => (
-              <option key={space._id || space.space_id} value={space.space_id} className={space.configure ? "text-slate-400" : ""}>
-                ID {space.space_id} {space.configure ? "(In Use)" : ""}
-              </option>
-            ))}
-          </select>
+            options={getSpaceOptions(row)}
+          />
         )
       )
     },
@@ -270,9 +324,9 @@ export default function Spaces() {
     },
     {
       header: "Operation",
-      accessor: (row, index) => (
+      accessor: (row) => (
         <button
-          onClick={() => row.configure ? handleDisconnect(row) : handleConnect(row, index)}
+          onClick={() => row.configure ? handleDisconnect(row) : handleConnect(row)}
           disabled={loading}
           className={`px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition-all ${row.configure
             ? 'bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20'
@@ -283,7 +337,7 @@ export default function Spaces() {
         </button>
       )
     }
-  ], [data, loading, allSpaces]);
+  ], [getSpaceOptions, handleInputChange, handleDisconnect, handleConnect, loading]);
 
   return (
     <div className="space-y-8 pb-10">

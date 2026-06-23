@@ -41,7 +41,7 @@ const Register = () => {
             });
 
             if (result.success) {
-                navigate(result.role === "admin" ? "/admin" : "/");
+                navigate("/login");
             } else {
                 setError(result.message);
             }

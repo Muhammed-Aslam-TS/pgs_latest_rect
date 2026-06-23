@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import ReusableTable from "../../components/common/reusableTable";
 import CrudModal from "../../components/common/CrudModal";
@@ -36,6 +36,7 @@ export default function Zones() {
       const res = await apiService.get("/api/parkings");
       setParkings(res.data || []);
     } catch (error) {
+      console.error("Fetch Parkings Error:", error);
       showErrorToast("Failed to fetch vessel hubs.");
     }
   };
@@ -45,13 +46,13 @@ export default function Zones() {
     try {
       const res = await apiService.get(`/api/floors/${parkingId}`);
       setFloors(res.data || res.floors_data || []);
-    } catch (error) {
-      console.error("Fetch Floors Error:", error);
+    } catch (_error) {
+      console.error("Fetch Floors Error:", _error);
       setFloors([]);
     }
   };
 
-  const fetchZones = async (floorId) => {
+  const fetchZones = useCallback(async (floorId) => {
     if (!floorId) return;
     setLoading(true);
     try {
@@ -72,13 +73,13 @@ export default function Zones() {
       } else {
         setData(fetchedData);
       }
-    } catch (error) {
-      console.error("Fetch Zones Error:", error);
+    } catch (_error) {
+      console.error("Fetch Zones Error:", _error);
       setData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [floors]);
 
   useEffect(() => {
     if (selectedParking) {
@@ -95,7 +96,7 @@ export default function Zones() {
     } else {
       setData([]);
     }
-  }, [selectedFloor]);
+  }, [selectedFloor, fetchZones]);
 
   const handleAddRows = () => {
     if (!selectedFloor) {
@@ -116,13 +117,16 @@ export default function Zones() {
     setRowsToAdd(0);
   };
 
-  const handleInputChange = (index, field, value) => {
+  const handleInputChange = useCallback((index, field, value) => {
     setData((prev) => {
       const newData = [...prev];
-      newData[index][field] = value;
+      newData[index] = {
+        ...newData[index],
+        [field]: value
+      };
       return newData;
     });
-  };
+  }, []);
 
   const handleSaveAll = async () => {
     const newItems = data.filter(item => item.isNew);
@@ -147,6 +151,7 @@ export default function Zones() {
       showSuccessToast(res.message || "Sectors deployed successfully.");
       fetchZones(selectedFloor);
     } catch (error) {
+      console.error("Save Zones Error:", error);
       showErrorToast("Sector deployment failed.");
     } finally {
       setLoading(false);
@@ -154,14 +159,14 @@ export default function Zones() {
   };
 
   // --- CRUD handlers ---
-  const handleEdit = (row) => {
+  const handleEdit = useCallback((row) => {
     setEditItem({
       _id: row._id,
       zone_name: row.zone_name || "",
       total_spaces: row.total_spaces || 0,
     });
     setShowEditModal(true);
-  };
+  }, []);
 
   const handleEditSave = async (formData) => {
     setEditLoading(true);
@@ -175,13 +180,14 @@ export default function Zones() {
       setEditItem(null);
       fetchZones(selectedFloor);
     } catch (error) {
+      console.error("Edit Zone Error:", error);
       showErrorToast("Failed to update zone.");
     } finally {
       setEditLoading(false);
     }
   };
 
-  const handleDelete = async (row) => {
+  const handleDelete = useCallback(async (row) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${row.zone_name}"?\n\nThis will also remove all associated spaces.`
     );
@@ -193,11 +199,12 @@ export default function Zones() {
       showSuccessToast(res.message || "Zone deleted successfully.");
       fetchZones(selectedFloor);
     } catch (error) {
+      console.error("Delete Zone Error:", error);
       showErrorToast("Failed to delete zone.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedFloor, fetchZones]);
 
   const editFields = [
     { key: "_id", label: "Record ID", disabled: true },
@@ -279,7 +286,7 @@ export default function Zones() {
         )
       ),
     },
-  ], [data]);
+  ], [handleInputChange, handleEdit, handleDelete]);
 
   return (
     <div className="space-y-8 pb-10">

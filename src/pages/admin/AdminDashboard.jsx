@@ -65,8 +65,17 @@ const AdminDashboard = () => {
                 // If dashboard socket sends an update, re-fetch spaces
                 fetchData();
             });
-            socket.on('spaceUpdate', () => {
+            socket.on('spaceUpdate', (data) => {
                 fetchData();
+                setLogs(prevLogs => {
+                    const newLog = {
+                        vehicle: `Space ${data?.space_id || 'Update'}`,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        status: data?.device_occupied ? "ENTRY" : "EXIT",
+                        gate: "Sensor Update"
+                    };
+                    return [newLog, ...prevLogs].slice(0, 10);
+                });
             });
         }
         return () => {

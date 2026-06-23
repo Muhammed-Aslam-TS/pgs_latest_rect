@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Header } from "../layout/Header";
 import { FloorSection } from "./FloorList";
 import { ZoneSection } from "./ZoneList";
-import { ApexChart } from "../common/LineChart";
 import Modal from "../common/Modal";
-import { Car, CheckCircle, Clock, X, Monitor } from 'lucide-react';
+import { Car, CheckCircle, Clock, X } from 'lucide-react';
 import MenuButton from '../common/MenuButton';
 
 import { initSocket, getSocket } from "../../services/socket";
@@ -14,9 +13,8 @@ import { ParkingSection } from "./ParkingList";
 import { DisplaySection } from "./DisplayList";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie, Legend, LineChart, Line
+  Cell, PieChart, Pie, LineChart, Line
 } from 'recharts';
-import { Icon } from '@iconify/react';
 import Loader from "../common/Loader";
 
 export const Home = () => {
@@ -93,6 +91,7 @@ export const Home = () => {
         total_spaces: zone.total_spaces,
         occupied: zone.occupied,
         free: zone.free,
+        status: zone.status || (zone.free === 0 ? "Full" : "Available"),
         occupancy: Math.round((zone.occupied / zone.total_spaces) * 100),
       }));
 
@@ -218,11 +217,6 @@ export const Home = () => {
         isFlipped: false,
       }));
       setParkingSections(mapped);
-
-      if (!activeSection && mapped.length > 0) {
-        setActiveSection(mapped[0]);
-        fetchFloors(mapped[0]._id);
-      }
     }
 
     // Handle graph data extraction
@@ -234,7 +228,7 @@ export const Home = () => {
         parkingByDay: generateMockGraphData(),
       });
     }
-  }, [activeSection, fetchFloors, generateMockGraphData]);
+  }, [generateMockGraphData]);
 
   const fetchDataFromBackend = useCallback(async () => {
     try {
@@ -271,17 +265,27 @@ export const Home = () => {
     }
   }, [parkingSections, fetchDisplays]);
 
+  // Handle side-effect of setting initial active section
   useEffect(() => {
-    const socket = initSocket();
-    let isUsingFetch = false;
+    if (parkingSections && parkingSections.length > 0 && !activeSection) {
+      setActiveSection(parkingSections[0]);
+      fetchFloors(parkingSections[0]._id);
+    }
+  }, [parkingSections, activeSection, fetchFloors]);
 
-    // Add connection options and error handling
+  useEffect(() => {
+    // Fetch initial data immediately on mount
+    fetchDataFromBackend();
+
+    const socket = initSocket();
+
+    // Set initial connection status if socket is already connected
+    if (socket.connected) {
+      setSocketConnected(true);
+    }
+
     socket.io.on("error", (error) => {
       console.error("Socket.io error:", error);
-      if (!isUsingFetch) {
-        isUsingFetch = true;
-        fetchDataFromBackend();
-      }
     });
 
     socket.io.on("reconnect_attempt", (attempt) => {
@@ -291,32 +295,28 @@ export const Home = () => {
     socket.io.on("reconnect", () => {
       console.log("Reconnected successfully");
       setError(null);
-      // Re-request data after reconnection
-      socket.emit("requestParkingData");
     });
 
     socket.on("connect", () => {
       setSocketConnected(true);
       setError(null);
       console.log("Connected to server");
-      socket.emit("requestParkingData");
+    });
+
+    socket.on("disconnect", () => {
+      setSocketConnected(false);
+      console.log("Disconnected from server");
     });
 
     socket.on("connect_error", (error) => {
       console.error("Connection error:", error);
-      if (!isUsingFetch) {
-        isUsingFetch = true;
-        fetchDataFromBackend();
-      }
     });
 
-    // Handle initial data
+    // Handle initial data if server happens to send it
     socket.on("initialData", (data) => {
-      if (!isUsingFetch) {
-        console.log("Received initial socket data:", data);
-        processData(data);
-        setLoading(false);
-      }
+      console.log("Received initial socket data:", data);
+      processData(data);
+      setLoading(false);
     });
 
     // Handle real-time updates
@@ -357,10 +357,12 @@ export const Home = () => {
       setZones(prev => {
         return prev.map(zone => {
           if (data.floor_data && data.floor_data.zone_data && String(zone._id) === String(data.floor_data.zone_data.zone_id)) {
+            const isFull = data.floor_data.zone_data.zone_free === 0;
             return {
               ...zone,
               occupied: data.floor_data.zone_data.zone_occupied,
               free: data.floor_data.zone_data.zone_free,
+              status: data.floor_data.zone_data.zone_status || (isFull ? "Full" : "Available"),
               occupancy: Math.round((data.floor_data.zone_data.zone_occupied / data.floor_data.zone_data.zone_spaces) * 100)
             };
           }
@@ -377,6 +379,7 @@ export const Home = () => {
             const upTime = data.space_obj.updatedAt || new Date().toISOString();
             return {
               ...space,
+              device_mode: data.space_obj.device_mode || space.device_mode,
               device_occupied: isOcc,
               status: isOcc ? 'occupied' : 'vacant',
               updatedAt: upTime,
@@ -410,22 +413,22 @@ export const Home = () => {
       socket.io.off("reconnect_attempt");
       socket.io.off("reconnect");
     };
-  }, [activeSection, activeFloor, fetchDataFromBackend, processData]);
+  }, [fetchDataFromBackend, processData]);
 
-  const uniqueDisplayFloors = useMemo(() => {
-    const floorSet = new Set();
-    displays.forEach(d => {
-      // Only include floors from the selected parking if a filter is active
-      if (displayFilterParking !== "all" && d.parking_id !== displayFilterParking) return;
-
-      if (Array.isArray(d.display_connections_name)) {
-        d.display_connections_name.forEach(f => floorSet.add(f));
-      } else if (typeof d.display_connections_name === 'string') {
-        floorSet.add(d.display_connections_name);
-      }
-    });
-    return Array.from(floorSet).filter(Boolean).sort();
-  }, [displays, displayFilterParking]);
+  // const uniqueDisplayFloors = useMemo(() => {
+  //   const floorSet = new Set();
+  //   displays.forEach(d => {
+  //     // Only include floors from the selected parking if a filter is active
+  //     if (displayFilterParking !== "all" && d.parking_id !== displayFilterParking) return;
+  // 
+  //     if (Array.isArray(d.display_connections_name)) {
+  //       d.display_connections_name.forEach(f => floorSet.add(f));
+  //     } else if (typeof d.display_connections_name === 'string') {
+  //       floorSet.add(d.display_connections_name);
+  //     }
+  //   });
+  //   return Array.from(floorSet).filter(Boolean).sort();
+  // }, [displays, displayFilterParking]);
 
   const filteredDisplays = useMemo(() => {
     return displays.filter(d => {
@@ -737,7 +740,7 @@ export const Home = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 w-full">
             {/* Occupancy Trend Analysis */}
-            <div className="bg-[#0b0f1a] border border-white/5 p-6 rounded shadow-2xl lg:col-span-2">
+            <div className="bg-[#0b0f1a] border border-white/5 p-6 rounded shadow-2xl">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-1 h-5 bg-purple-500 rounded" />
@@ -781,7 +784,7 @@ export const Home = () => {
             </div>
 
             {/* Main Utilization Trend */}
-            <div className="bg-[#0b0f1a] border border-white/5 p-6 rounded shadow-2xl lg:col-span-2">
+            <div className="bg-[#0b0f1a] border border-white/5 p-6 rounded shadow-2xl">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-1 h-5 bg-blue-500 rounded" />
@@ -953,7 +956,7 @@ export const Home = () => {
               </div>
               <div className="overflow-x-auto pb-4 custom-scrollbar">
                 <div className="min-w-[850px] space-y-2">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => (
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
                     <div key={day} className="flex items-center gap-4">
                       <div className="w-10 text-[10px] font-black text-slate-500 uppercase tracking-tighter">{day}</div>
                       <div className="flex-1 flex gap-1 h-8">
@@ -1030,6 +1033,7 @@ export const Home = () => {
                 id={zone._id}
                 total_spaces={zone.total_spaces}
                 occupied={zone.occupied}
+                status={zone.status}
                 isActive={false}
                 onClick={() => handleZoneClick(zone)}
                 menuOpen={menuOpen}
@@ -1111,7 +1115,12 @@ export const Home = () => {
                   )}
 
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`text-sm font-bold tracking-tight ${isOccupied ? 'text-rose-400' : 'text-emerald-400'}`}>{space.name || space.id}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className={`text-sm font-bold tracking-tight ${isOccupied ? 'text-rose-400' : 'text-emerald-400'}`}>{space.name || space.id}</span>
+                      <span className={`text-[9px] font-extrabold uppercase tracking-wider ${space.device_mode === 'LIVE' ? 'text-blue-400 font-bold' : 'text-slate-500 font-semibold'}`}>
+                        {space.device_mode === 'LIVE' ? '● Live' : '○ Static'}
+                      </span>
+                    </div>
                     <MenuButton
                       isOpen={activeSpaceMenu === space.id}
                       onClick={(e) => handleSpaceMenuClick(e, space.id)}
@@ -1135,6 +1144,13 @@ export const Home = () => {
                       <span className={`text-[10px] font-bold uppercase tracking-wider ${isOccupied ? 'text-rose-400' : 'text-emerald-400'
                         }`}>
                         {isBlocked ? 'blocked' : space.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Mode</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${space.device_mode === 'LIVE' ? 'text-blue-400 font-bold' : 'text-slate-400 font-semibold'}`}>
+                        {space.device_mode === 'LIVE' ? 'Live' : 'Static'}
                       </span>
                     </div>
 

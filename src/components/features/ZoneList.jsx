@@ -3,12 +3,14 @@ import { Car, Box, CheckCircle, X } from 'lucide-react';
 import MenuButton from '../common/MenuButton';
 import FlipButton from '../common/FlipButton';
 import PropTypes from 'prop-types';
+import { apiService } from '../../services/api';
 
 export const ZoneSection = ({
   title = "Unknown Zone",
   id,
   total_spaces = 0,
   occupied = 0,
+  status = "Available",
   isActive = false,
   onClick,
   menuOpen,
@@ -19,16 +21,29 @@ export const ZoneSection = ({
 }) => {
   const isFlipped = flippedSection === title;
 
-  const handleMenuItemClick = (action) => {
-    switch (action) {
-      case 'blockZone':
-        console.log('Block zone clicked for zone:', title);
-        break;
-      case 'unblockZone':
-        console.log('Unblock zone clicked for zone:', title);
-        break;
-      default:
-        console.log('Unknown action:', action);
+  const handleMenuItemClick = async (action) => {
+    console.log(`${action} clicked for zone ID: ${id}`);
+    
+    // Connect to backend API if it's a real MongoDB ObjectId
+    const isMongoId = typeof id === 'string' && id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id);
+    if (isMongoId) {
+      try {
+        let endpoint = "";
+        let payload = { zoneObjID: id };
+        
+        if (action === 'blockZone') {
+          endpoint = "/api/blockSpacesByZone";
+        } else if (action === 'unblockZone') {
+          endpoint = "/api/unBlockSpacesByZone";
+        }
+        
+        if (endpoint) {
+          const res = await apiService.post(endpoint, payload);
+          console.log(`Backend zone action ${action} response:`, res);
+        }
+      } catch (err) {
+        console.error(`Failed to execute zone action ${action}:`, err);
+      }
     }
   };
 
@@ -41,7 +56,16 @@ export const ZoneSection = ({
       onClick={onClick}
     >
       <div className={`flex justify-between items-start ${compact ? 'mb-2' : 'mb-6'}`}>
-        <h3 className={`${compact ? 'text-xs' : 'text-lg'} font-bold tracking-tight truncate pr-1 ${isActive ? 'text-white' : 'text-slate-300'}`}>{title}</h3>
+        <div className="flex flex-col gap-0.5 min-w-0 pr-1">
+          <h3 className={`${compact ? 'text-xs' : 'text-lg'} font-bold tracking-tight truncate ${isActive ? 'text-white' : 'text-slate-300'}`}>{title}</h3>
+          <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider w-max ${
+            status === 'Full' || status === 'Occupied'
+              ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.1)]'
+              : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.1)]'
+          }`}>
+            {status}
+          </span>
+        </div>
         <div className="flex items-center space-x-1 relative">
           <FlipButton
             isFlipped={isFlipped}
@@ -70,18 +94,18 @@ export const ZoneSection = ({
           >
             <X size={18} />
           </button>
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">Sector Actions</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">Zone Actions</p>
           <button
             className="w-[85%] py-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 active:scale-95 transition-all"
             onClick={(e) => { e.stopPropagation(); handleMenuItemClick('blockZone'); handleMenuClick(e, { _id: id }); }}
           >
-            Isolate Sector
+            Block Zone
           </button>
           <button
             className="w-[85%] py-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 active:scale-95 transition-all"
             onClick={(e) => { e.stopPropagation(); handleMenuItemClick('unblockZone'); handleMenuClick(e, { _id: id }); }}
           >
-            Enable Sector
+            Unblock Zone
           </button>
         </div>
       )}
@@ -145,6 +169,7 @@ ZoneSection.propTypes = {
   title: PropTypes.string.isRequired,
   total_spaces: PropTypes.number.isRequired,
   occupied: PropTypes.number.isRequired,
+  status: PropTypes.string,
   isActive: PropTypes.bool.isRequired,
   onClick: PropTypes.func.isRequired,
   menuOpen: PropTypes.string,

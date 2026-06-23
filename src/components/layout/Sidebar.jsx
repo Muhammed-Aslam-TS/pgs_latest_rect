@@ -42,6 +42,16 @@ const ADMIN_MENU_ITEMS = [
     icon: "solar:shield-check-linear",
   },
   {
+    label: "Layout Config",
+    to: "layout-config",
+    icon: "solar:map-draw-linear",
+  },
+  {
+    label: "Live Layout",
+    to: "live-layout",
+    icon: "solar:videocamera-record-linear",
+  },
+  {
     label: "System Settings",
     to: "#",
     icon: "solar:settings-linear",
@@ -70,6 +80,11 @@ const DASH_MENU_ITEMS = [
     label: "Live Monitoring",
     to: "Displays",
     icon: "solar:monitor-linear",
+  },
+  {
+    label: "Live Layout",
+    to: "live-layout",
+    icon: "solar:videocamera-record-linear",
   },
   {
     label: "Manage Slots",
@@ -111,7 +126,24 @@ const Sidebar = ({ isOpen, content }) => {
     setOpenDropdownIndex((prev) => (prev === index ? null : index));
   };
 
-  const menuItems = content === "admin" ? ADMIN_MENU_ITEMS : DASH_MENU_ITEMS;
+  let menuItems = content === "admin" ? [...ADMIN_MENU_ITEMS] : [...DASH_MENU_ITEMS];
+
+  // If user is admin, allow switching between Admin Panel and User Dashboard
+  if (user?.role === "admin") {
+    if (content === "admin") {
+      menuItems.push({
+        label: "User Dashboard",
+        to: "/",
+        icon: "solar:home-smile-linear",
+      });
+    } else {
+      menuItems.push({
+        label: "Admin Panel",
+        to: "/admin",
+        icon: "solar:shield-keyhole-linear",
+      });
+    }
+  }
 
   const renderMenuItem = (item, index) => {
     const isActive = isActivePath(item.to);

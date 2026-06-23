@@ -33,14 +33,14 @@ export const AuthProvider = ({ children }) => {
             if (responseData && responseData.token && responseData.id) {
                 const userObj = { 
                     _id: responseData.id, 
-                    name: responseData.usename, 
-                    email: responseData.usename, 
-                    role: "admin" 
+                    name: responseData.username || responseData.usename, 
+                    email: responseData.username || responseData.usename, 
+                    role: responseData.role || "user" 
                 };
                 setUser(userObj);
                 localStorage.setItem("user", JSON.stringify(userObj));
                 localStorage.setItem("token", responseData.token);
-                return { success: true, role: "admin" };
+                return { success: true, role: userObj.role };
             } else {
                 return { success: false, message: "Invalid response from server" };
             }
@@ -57,7 +57,11 @@ export const AuthProvider = ({ children }) => {
     const register = async (userData) => {
         try {
             // Backend returns a flat object: { _id, name, email, role, token }
-            const data = await apiService.post(endpoints.auth.register, { username: userData.email, password: userData.password });
+            const data = await apiService.post(endpoints.auth.register, { 
+                username: userData.email, 
+                password: userData.password,
+                role: userData.role
+            });
 
             if (data && data.status === 200) {
                 if (data.message === "admin exist") {

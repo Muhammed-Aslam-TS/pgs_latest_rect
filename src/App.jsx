@@ -23,6 +23,8 @@ const Spaces = lazy(() => import("./pages/admin/Spaces"));
 const Devices = lazy(() => import("./pages/admin/Devices"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const ManageSlots = lazy(() => import("./pages/admin/ManageSlots"));
+const LayoutConfig = lazy(() => import("./pages/admin/LayoutConfig"));
+const LiveLayoutDashboard = lazy(() => import("./pages/admin/LiveLayoutDashboard"));
 
 function App() {
   return (
@@ -50,6 +52,8 @@ function App() {
                <Route path="spaces" element={<Spaces />} />
                <Route path="devices" element={<Devices />} />
                <Route path="manage-slots" element={<ManageSlots />} />
+               <Route path="layout-config" element={<LayoutConfig />} />
+               <Route path="live-layout" element={<LiveLayoutDashboard />} />
                <Route path="configpgs" element={<DisplayConfig />} />
             </Route>
           </Route>
@@ -59,6 +63,7 @@ function App() {
             <Route path="/" element={<Wrapper content="dashboard" />}>
                <Route index element={<DashBoard />} />
                <Route path="Displays" element={<Displays />} />
+               <Route path="live-layout" element={<LiveLayoutDashboard />} />
                <Route path="manage-slots" element={<ManageSlots />} />
                <Route path="Reports" element={<Reports />} />
                <Route path="Reports/:tabId" element={<Reports />} />
